@@ -1,0 +1,71 @@
+---
+title: "Case Study 1"
+author: "Anthony Dalton"
+date: "November 2, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(root.dir = "~/CaseStudy1")
+source('~/CaseStudy1/Code/GetGDP.R')
+source('~/CaseStudy1/Code/GetEdData.R')
+library(ggplot2)
+```
+
+With the amount of big data that exists in the world, it is imperative to use caution while merging documents. When exploring the GDP in relationship to educational data, this is magnified ten-fold. Using two data sources from The World Bank, we are exploring the education statistics dataset as well as the gross domestic product ranking table.  We will merge the data based of the key identifier of country code to explore trends by income groups using quantiles and graphical plots.
+
+#### Using sourced data, merge the two clean datasets that exist in GetGDP.r and GetEdData.R
+```{r}
+#Merge the cleaned datasets into a new datafile named EdGDP
+EdGDP <- merge(GDP,EdData,by = "CountryCode")
+#Summary of columns in new EdGDP data frame
+str(EdGDP)
+#Question 1: Number of matched records between both datasets
+nrow(EdGDP) 
+```
+There are 189 matched ID's between both data frames.
+
+#### Sort dataframe in ascending order by GDP
+```{r}
+#Question 2, sort data frame:
+EdGDP <- EdGDP[order(EdGDP$Dollars),] 
+#Question 2,Display the 13th country name in the data frame
+EdGDP[13,3]
+```
+There are two counties tied for 13th place, Grenada and St. Kitts and Nevis
+
+#### Run means by income.group
+```{r}
+# Question 3:
+# display the mean rank of income.group = "High income: OECD"
+mean(EdGDP[EdGDP$Income.Group == "High income: OECD","Rank"])
+# display the mean rank of income.group = "High income: nonOECD"
+mean(EdGDP[EdGDP$Income.Group == "High income: nonOECD","Rank"])
+```
+The mean rank for the High Income: OECD group is 32.9667. The mean rank for the High Income: nonOECD group is 91.9304
+
+#### Plot GDP by country
+```{r fig.width=10, fig.height=7,}
+# Question 4
+# Set the scientific notation penalty to 100 to display the large GDP amounts
+options(scipen=100)
+# Plot the GDP Dollars by country code and fill the geometric bar with income.group coloring
+q <- ggplot(data=EdGDP, aes(x=CountryCode, y=Dollars, fill=Income.Group)) +
+  geom_bar(colour="black", stat="identity") 
+# since there are so many countries, shrink the size of the x axis text to make it human readable
+q + theme(axis.text.x = element_text(angle = 90, hjust = .5),axis.text=element_text(size=5),legend.position="bottom")
+```
+
+#### Setup quantile groups of GDP rankings
+```{r}
+# Question 5
+# Create a new data frame named GDPQuartile that will split the data into quartiles and create a new column named quartile
+GDPQuartile <- within(EdGDP, quartile <- as.integer(cut(Dollars, quantile(Dollars, probs=0:5/5), include.lowest=TRUE)))
+# Display the data that is in quantile group 5 that also has income.group of lower middle income
+subset(GDPQuartile, GDPQuartile$quartile == "5" & GDPQuartile$Income.Group == "Lower middle income")
+nrow(subset(GDPQuartile, GDPQuartile$quartile == "5" & GDPQuartile$Income.Group == "Lower middle income"))
+```
+There are five countries in quantile group 5 that also have an income.group of lower middle income
+
+### Findings
+There are 189 countries that we were able to match records on between the GDP and education datasets from the World Bank. The United States of America has the highest GDP whereas Tuvalu has the lowest. The mean rank for the High Income: OECD group is 32.9667. The mean rank for the High Income: nonOECD group is 91.9304. There are five countries that are in the highest quartile that have an income.group of lower middle income: Egypt, Thailand, Indonesia, India, and China
